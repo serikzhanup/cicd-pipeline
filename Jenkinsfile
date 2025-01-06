@@ -1,0 +1,71 @@
+pipeline {
+    agent any
+    environment {
+        IMAGE_NAME = 'serikzhanhc/mybuildimage'
+        IMAGE_TAG = "${env.BUILD_NUMBER ?: '1.0'}"
+    }
+    stages {
+        stage('Checkout') {
+            steps {
+                echo 'Checking out code...'
+                checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: '*/main']],
+                    extensions: [[$class: 'CloneOption', shallow: true, depth: 1]],
+                    userRemoteConfigs: [[
+                        url: 'https://github.com/serikzhanup/cicd-pipeline',
+                        credentialsId: 'github_pat'
+                    ]]
+                ])
+            }
+        }
+
+        stage('Build Application') {
+            steps {
+                echo 'Building the application...'
+                sh '''
+                    chmod +x scripts/build.sh
+                    ./scripts/build.sh
+                '''
+            }
+        }
+
+        stage('Run Tests') {
+            steps {
+                echo 'Running tests...'
+                sh '''
+                    chmod +x scripts/test.sh
+                    ./scripts/test.sh
+                '''
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                echo 'Building Docker image...'
+                script {
+                    sh "docker build --pull -t ${IMAGE_NAME}:${IMAGE_TAG} ."
+                }
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                echo 'Pushing Docker image to Docker Hub...'
+                script {
+                    docker.withRegistry('https://registry.hub.docker.com', 'docker_hub_creds_id') {
+                        sh "docker push ${IMAGE_NAME}:${IMAGE_TAG}"
+                        sh "docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:latest"
+                        sh "docker push ${IMAGE_NAME}:latest"
+                    }
+                }
+            }
+        }
+    }
+    post {
+        always {
+            echo 'Cleaning up unused Docker resources...'
+            sh 'docker system prune -f || true'
+        }
+    }
+}
