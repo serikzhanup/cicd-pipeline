@@ -43,20 +43,17 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 echo 'Building Docker image...'
-                script {
-                    sh "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} ."
-                }
+                sh "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} ."
             }
         }
 
         stage('Push Docker Image') {
             steps {
                 echo 'Pushing Docker image to Docker Hub...'
-                script {
-                    docker.withRegistry('https://registry.hub.docker.com', 'docker_hub_creds_id') {
-                        sh "docker push ${IMAGE_NAME}:${IMAGE_TAG}"
-                    }
-                }
+                sh '''
+                    echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+                    docker push ${IMAGE_NAME}:${IMAGE_TAG}
+                '''
             }
         }
     }
