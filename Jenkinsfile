@@ -50,10 +50,12 @@ pipeline {
         stage('Push Docker Image') {
             steps {
                 echo 'Pushing Docker image to Docker Hub...'
-                sh '''
-                    echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
-                    docker push ${IMAGE_NAME}:${IMAGE_TAG}
-                '''
+                script {
+                    docker.withRegistry('https://registry.hub.docker.com', 'docker_hub_creds_id') {
+                        def app = docker.image("${IMAGE_NAME}:${IMAGE_TAG}")
+                        app.push() 
+                    }
+                }
             }
         }
     }
