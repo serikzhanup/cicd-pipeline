@@ -2,7 +2,7 @@ pipeline {
     agent any
     environment {
         IMAGE_NAME = 'serikzhanhc/mybuildimage'
-        IMAGE_TAG = "${env.BUILD_NUMBER ?: '1.0'}"
+        IMAGE_TAG = '1.0.0'
     }
     stages {
         stage('Checkout') {
@@ -44,7 +44,7 @@ pipeline {
             steps {
                 echo 'Building Docker image...'
                 script {
-                    sh "docker build --pull -t ${IMAGE_NAME}:${IMAGE_TAG} ."
+                    sh "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} ."
                 }
             }
         }
@@ -55,8 +55,6 @@ pipeline {
                 script {
                     docker.withRegistry('https://registry.hub.docker.com', 'docker_hub_creds_id') {
                         sh "docker push ${IMAGE_NAME}:${IMAGE_TAG}"
-                        sh "docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:latest"
-                        sh "docker push ${IMAGE_NAME}:latest"
                     }
                 }
             }
